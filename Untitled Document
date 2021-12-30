@@ -1,0 +1,45 @@
+
+
+
+
+
+docker images
+
+docker run -ti -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 e5c643806d03
+
+with
+
+jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+localhost:8889/tree‌  <- access this via host
+
+
+docker ps  <- for running images, get container ID
+
+then, exit running/modified container and run: 
+
+
+docker commit <containerID> <new_name>
+
+
+docker rmi -f <image id>  to delete an image
+
+
+
+# for GPU stuff:
+
+nvidia-docker run -it --init --ipc=host -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 cf1938c44748 /bin/bash
+
+
+
+
+# Once in the interactive docker image, run:
+
+$ git clone https://github.com/FenTechSolutions/CausalDiscoveryToolbox.git  # Download the package 
+$ cd CausalDiscoveryToolbox
+$ pip install -r requirements.txt  # Install the requirements
+$ python setup.py install develop --user
+
+otherwise, an older version of SAM will be installed, which won't have the capacity to learn graphs from mixed cont/disc. data.
+
+Don't forget to save/commit the docker image (following the instructions above)
+
