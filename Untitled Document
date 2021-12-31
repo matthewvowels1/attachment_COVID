@@ -7,6 +7,10 @@ docker images
 
 docker run -ti -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 e5c643806d03
 
+for GPU stuff:
+
+nvidia-docker run -it --init --ipc=host -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 cf1938c44748 /bin/bash
+
 with
 
 jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
@@ -25,9 +29,6 @@ docker rmi -f <image id>  to delete an image
 
 
 
-# for GPU stuff:
-
-nvidia-docker run -it --init --ipc=host -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 cf1938c44748 /bin/bash
 
 
 
