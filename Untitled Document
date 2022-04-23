@@ -9,7 +9,8 @@ docker run -ti -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/atta
 
 for GPU stuff:
 
-nvidia-docker run -it --init --ipc=host -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 cf1938c44748 /bin/bash
+nvidia-docker run -it --init --ipc=host -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 a3cc03656950 /bin/bash
+
 
 with
 
