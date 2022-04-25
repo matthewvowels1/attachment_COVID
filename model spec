@@ -1,0 +1,21 @@
+
+
+# WAVE 2 X-SEC
+outcome:  W2_Risk_total . Confounders: {'W2_Gender'} . Precisions: {'W2_RISK_1month', 'W2_Pregnant', 'W2_Keyworker', 'W2_COVID19_anxiety', 'W2_Age_year', 'W2_Children_household', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+outcome:  W2_Hygiene_total . Confounders: {'W2_Gender'} . Precisions: {'W2_RISK_1month', 'W2_Pregnant', 'W2_Keyworker', 'W2_COVID19_anxiety', 'W2_Age_year', 'W2_Children_household', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+outcome:  W2_Dep_Total . Confounders: {'W2_Gender'} . Precisions: {'W2_RISK_1month', 'W2_Pregnant', 'W2_Keyworker', 'W2_COVID19_anxiety', 'W2_Age_year', 'W2_Children_household', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+outcome:  W2_GAD_Total . Confounders: {'W2_Gender'} . Precisions: {'W2_RISK_1month', 'W2_Pregnant', 'W2_Keyworker', 'W2_COVID19_anxiety', 'W2_Age_year', 'W2_Children_household', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+outcome:  W2_Loneliness_Total . Confounders: {'W2_Gender'} . Precisions: {'W2_RISK_1month', 'W2_Keyworker', 'W2_COVID19_anxiety', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+
+# WAVE 2-3 LONGITUDINAL
+outcome:  W3_Dep_Total . Confounders: set() . Precisions: {'W2_Children_household', 'W2_Adults_household', 'W2_COVID19_anxiety', 'W2_Keyworker', 'W2_Gender', 'W2_Age_year', 'W2_Pregnant', 'W2_RISK_1month', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+outcome:  W3_GAD_Total . Confounders: set() . Precisions: {'W2_Children_household', 'W2_Adults_household', 'W2_COVID19_anxiety', 'W2_Keyworker', 'W2_Gender', 'W2_Age_year', 'W2_Pregnant', 'W2_RISK_1month', 'W2_Change_Income', 'W2_Chronic_illness_self'}
+
+
+

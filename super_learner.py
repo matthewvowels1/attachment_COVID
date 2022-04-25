@@ -1,10 +1,18 @@
 import numpy as np
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from scipy.optimize import minimize
 from scipy.optimize import nnls
-from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.preprocessing import PolynomialFeatures#
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.linear_model import ElasticNet, LinearRegression, LogisticRegression, BayesianRidge
+from sklearn.svm import SVR, SVC
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, AdaBoostClassifier, RandomForestClassifier
+from sklearn.neural_network import MLPRegressor, MLPClassifier
+from warnings import filterwarnings
+from sklearn.naive_bayes import GaussianNB
+from tqdm import tqdm
+
 
 
 def fn(x, A, b):
@@ -31,14 +39,16 @@ def combiner_solve(x, y):
 
 
 class SuperLearner(object):
-	def __init__(self, output, est_dict, k, standardized_outcome=False):
-
+	def __init__(self, output, k, standardized_outcome=False, calibration=True, learner_list=None ):
+		self.learner_list = learner_list
+		self.num_learners = len(learner_list)
 		self.k = k  # number of cross validation folds
 		self.beta = None
 		self.output = output  # 'reg' for regression, 'proba' or 'cls' classification
 		self.trained_superlearner = None
-		self.est_dict = est_dict  # dictionary of learners/algos
+		self.est_dict = None  # dictionary of learners/algos
 		self.standardized_outcome = standardized_outcome
+		self.calibration = calibration
 
 		self.x_std = None
 		self.x_mean = None
@@ -46,9 +56,69 @@ class SuperLearner(object):
 		self.y_mean = None
 		self.num_classes = None
 
+	def _init_learners(self):
+		est_dict = {}
+		for learner in self.learner_list:
+			if learner == 'Elastic':
+				l = 'Elastic0.25'
+				est_dict[l] = ElasticNet(alpha=0.25)
+				l = 'Elastic0.5'
+				est_dict[l] = ElasticNet(alpha=0.5)
+				l = 'Elastic0.75'
+				est_dict[l] = ElasticNet(alpha=0.75)
+				l = 'Elastic1'
+				est_dict[l] = ElasticNet(alpha=0.1)
+			elif learner == 'LR':
+				if ((self.output == 'cls') or (
+						self.output == 'proba') or (self.output == 'cat')):
+					est_dict[learner] = LogisticRegression(max_iter=500)
+				else:
+					est_dict[learner] = LinearRegression()
+			elif learner == 'MLP':
+				if ((self.output == 'cls') or (
+						self.output == 'proba') or (self.output == 'cat')):
+					est_dict[learner] = MLPClassifier(alpha=0.001, max_iter=2000)
+				else:
+					est_dict[learner] = MLPRegressor(alpha=0.001, max_iter=2000)
+			elif learner == 'SV':
+				if ((self.output == 'cls') or (
+						self.output == 'proba') or (self.output == 'cat')):
+					est_dict[learner] = SVC(probability=True)
+				else:
+					est_dict[learner] = SVR()
+			elif learner == 'AB':
+				if ((self.output == 'cls') or (
+						self.output == 'proba') or (self.output == 'cat')):
+					est_dict[learner] = AdaBoostClassifier()
+				else:
+					est_dict[learner] = AdaBoostRegressor()
+
+			elif learner == 'RF':
+				if ((self.output == 'cls') or (
+						self.output == 'proba') or (self.output == 'cat')):
+					est_dict[learner] = RandomForestClassifier()
+				else:
+					est_dict[learner] = RandomForestRegressor()
+
+			elif learner == 'BR' or 'NB':
+				if ((self.output == 'cls') or (
+						self.output == 'proba') or (self.output == 'cat')):
+					est_dict[learner] = GaussianNB()
+				else:
+					est_dict[learner] = BayesianRidge()
+
+			elif learner == 'poly':
+				est_dict[learner] = 'poly'
+
+		self.est_dict = est_dict
+		self.num_learners = len(list(self.est_dict.keys()))
+		self.learner_list = list(self.est_dict.keys())
+
+
 	def fit(self, x, y):
-		x = x.values if isinstance(x, pd.DataFrame) else x
-		y = y.values[:, 0] if isinstance(y, pd.DataFrame) else y
+		filterwarnings('ignore')
+		x = x.values.astype('float') if isinstance(x, pd.DataFrame) else x
+		y = y.values[:, 0].astype('float') if isinstance(y, pd.DataFrame) else y
 
 		# mean and std for full dataset (can be reused wth new data at prediction time)
 		self.x_std = x.std(0)
@@ -59,30 +129,33 @@ class SuperLearner(object):
 			self.y_mean = y.mean(0)
 
 		if (self.output == 'cls') or (self.output == 'proba'):
-			self.num_classes = np.unique(y)
+			self.num_classes = len(np.unique(y))
 
-			if len(self.num_classes) == 2:
-				self.num_classes = 1
-			elif len(self.num_classes) > 2:
-				self.num_classes = len(self.num_classes)
+			if self.num_classes > 2:
 				self.output = 'cat'
 		else:
 			self.num_classes = 1
 
-		kf = KFold(n_splits=self.k, shuffle=True, random_state=0)
+		if ((self.output == 'cls') or (
+				self.output == 'proba') or (self.output == 'cat')):
+			kf = StratifiedKFold(n_splits=self.k, shuffle=True, random_state=0)
+		else:
+			kf = KFold(n_splits=self.k, shuffle=True, random_state=0)
 
-		all_preds = np.zeros((len(y), len(self.est_dict)))  # for test preds
+		self._init_learners()
+
+		all_preds = np.zeros((len(y), self.num_learners))  # for test preds
 
 		i = 0
-		for key in self.est_dict.keys():
-			print('Training estimator:', key)
-
-			est = self.est_dict[key]
+		for key in tqdm(self.learner_list):
 
 			preds = []
 			gts = []
 
-			for train_index, test_index in kf.split(x):
+			for train_index, test_index in kf.split(x, y):
+				self._init_learners()  # initialise fresh learners
+
+				est = self.est_dict[key]
 				x_train = x[train_index]
 				x_test = x[test_index]
 				y_train = y[train_index]
@@ -106,10 +179,15 @@ class SuperLearner(object):
 					poly = PolynomialFeatures(2)
 					x_train_poly = poly.fit_transform(x_train)
 					x_test_poly = poly.fit_transform(x_test)
-
+					if ((self.output == 'cls') or (
+							self.output == 'proba') or (self.output == 'cat')):
+						est = CalibratedClassifierCV(base_estimator=est, cv=8)
 					est.fit(x_train_poly, y_train)
 
 				else:
+					if ((self.output == 'cls') or (
+							self.output == 'proba') or (self.output == 'cat')):
+						est = CalibratedClassifierCV(base_estimator=est, cv=8)
 					est.fit(x_train, y_train)
 
 				p = est.predict(x_test_poly) if key == 'poly' else est.predict(x_test)
@@ -128,12 +206,13 @@ class SuperLearner(object):
 
 		# now train each estimator on full dataset
 
+		self._init_learners()  # initialise learners fresh
+
 		x = (x - self.x_mean) / self.x_std
 		if self.standardized_outcome:
 			y = (y - self.y_mean) / self.y_std
 
-		for key in self.est_dict.keys():
-			print('Training estimator on full data:', key)
+		for key in tqdm(self.est_dict.keys()):
 
 			est = self.est_dict[key]
 
@@ -150,10 +229,12 @@ class SuperLearner(object):
 
 			self.est_dict[key] = est
 
+		return all_preds, gts  # returns the test folds from k-fold process along with ground truth
+
 	def predict(self, x):
-		x = x.values if isinstance(x, pd.DataFrame) else x
+		x = x.values.astype('float') if isinstance(x, pd.DataFrame) else x
 		x_ = (x - self.x_mean) / self.x_std
-		all_preds = np.zeros((len(x_), len(self.est_dict)))
+		all_preds = np.zeros((len(x_), self.num_learners))
 		i = 0
 
 		for key in self.est_dict.keys():
@@ -175,11 +256,11 @@ class SuperLearner(object):
 		return weighted_preds
 
 	def predict_proba(self, x):
-		x = x.values if isinstance(x, pd.DataFrame) else x
+		x = x.values.astype('float') if isinstance(x, pd.DataFrame) else x
 
 		x_ = (x - self.x_mean) / self.x_std
 
-		all_preds = np.zeros((len(x), self.num_classes, len(self.est_dict)))
+		all_preds = np.zeros((len(x), self.num_classes, self.num_learners))
 		i = 0
 
 		for key in self.est_dict.keys():
