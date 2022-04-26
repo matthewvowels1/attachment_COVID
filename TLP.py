@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from super_learner import*
 import statsmodels.api as sm
-from scipy.stats import norm, t
+from scipy.stats import t, norm
 from scipy.special import logit, expit
 import random
 

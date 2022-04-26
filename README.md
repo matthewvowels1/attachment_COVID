@@ -21,6 +21,8 @@ The (non nvidia-) docker image can be run interactively via
 docker run -ti -v /folder/to/mount/:/tmp/folder -p 8889:8888 e5c643806d03
 ```
 
+
+
 where the -p flag will enable you to run:
 
 ```jupyter notebook --ip 0.0.0.0 --no-browser --allow-root```
@@ -45,9 +47,9 @@ If you want to remove/delete an image:
 ## For GPU stuff:
 
 You can run:
-
+```
 nvidia-docker run -it --init --ipc=host -v /folder/to/mount/:/tmp/folder -p 8889:8888 cf1938c44748 /bin/bash
-
+```
 
 ## For most up to date methods
 
