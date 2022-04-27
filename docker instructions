@@ -5,7 +5,7 @@
 
 docker images
 
-docker run -ti -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 e5c643806d03
+docker run -it -v /home/matthewvowels/GitHub/Psych_ML/attachment_COVID:/tmp/attachment_COVID -p 8889:8888 e5c643806d03
 
 for GPU stuff:
 
